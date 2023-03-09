@@ -15,7 +15,7 @@ from xknx.exceptions import (
     ManagementConnectionTimeout,
 )
 from xknx.telegram import IndividualAddress, Telegram
-from xknx.telegram.apci import APCI
+from xknx.telegram.apci import APCI, Restart
 from xknx.telegram.tpci import TAck, TConnect, TDataConnected, TDisconnect, TNak
 
 if TYPE_CHECKING:
@@ -303,3 +303,13 @@ class P2PConnection:
             )
         await self._send_data(payload)
         return await self._receive(expected)
+
+    async def restart_device(self, reconnect_after: float or None = None) -> None:
+        """Restart the KNX device."""
+        # A_Restart will not be ACKed by the device, so it is manually sent to avoid timeout and retry
+        await self._send_data(payload=Restart())
+
+        if reconnect_after is not None:
+            await self.disconnect()
+            await asyncio.sleep(reconnect_after)
+            await self.connect()
